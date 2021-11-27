@@ -159,7 +159,7 @@ Remixのルートは、さまざまな用途に使用できます。
 
 ### default export
 
-ルートが一致したときにレンダリングされるコンポーネント。
+ルートが一致したときにレンダリングされるコンポーネントはdafault exportする。
 
 ```
 export default function SomeRouteComponent() {
@@ -185,7 +185,7 @@ export let loader: LoaderFunction = async () => {
 ブラウザのナビゲーションでRemixはfetchを介して関数を呼び出す。
 これは、データベースと直接通信したり、サーバーのみのAPIシークレットを使用したりできることを意味します。
 
-#### Prismaの使用例
+**Prismaの使用例**
 ```tsx
 import { useLoaderData } from "remix";
 import { prisma } from "../db";
@@ -206,15 +206,160 @@ export default function Users() {
 }
 ```
 
+#### params variable
 
+`data/invoices/$invoiceId.tsx`のようなURLの場合、invoiceIdを解析して取得できる
 
+```tsx
+// if the user visits /invoices/123
+export let loader: LoaderFunction = ({ params }) => {
+  params.invoiceId; // "123"
+};
+```
+
+#### request variable
+
+これは、リクエストに関する情報を含むFetchRequestインスタンスです。
+最も一般的なケースは、ヘッダーまたはURLの読み取りです。これを使用して、
+次のようにリクエストからURLURLSearchParamsを読み取ることもできます。
+
+```
+export let loader: LoaderFunction = ({ request }) => {
+  // read a cookie
+  let cookie = request.headers.get("Cookie");
+
+  // parse the search params
+  let url = new URL(request.url);
+  let search = url.searchParams.get("search");
+};
+```
+
+#### context variable
+
+サーバーアダプターのgetLoadContext()関数に渡したコンテキストです。
+これは、アダプターの要求/応答APIとRemixアプリの間のギャップを埋める方法です。
+**エスケープハッチなので必要になることはあまりない。**
+
+#### オブジェクトを返す
+
+```tsx
+export let loader = async () => {
+  return { whatever: "you want" };
+};
+```
+
+#### Response Objectを返す
+https://remix.run/docs/en/v1/api/conventions#returning-response-instances
+組み込み関数`json`にてパースができる？
+
+#### loaderでthrowをする
+応答を返すだけでなく、loaderからResponseオブジェクトをスローすることもできる。
+これにより、CatchBoundaryを介してコンテキストデータを含む代替UIを表示できます。
+https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
 
 ### action
+https://remix.run/docs/en/v1/api/conventions#action
+
+loader同様に、actionはデータの変更やその他のアクションを処理する**サーバーのみの機能**です。
+ルート（POST、PUT、PATCH、DELETE）に対して非GET要求が行われると、**ローダーの前にアクションが呼び出されます**。
+actionのAPIはactionが呼び出される時に実行される。
+
+これにより、データセットに関するすべてを単一のルートモジュールに配置できます。
+データの読み取り、データをレンダリングするコンポーネント、およびデータの書き込みです。
+
+```tsx
+import { redirect, Form } from "remix";
+import { fakeGetTodos, fakeCreateTodo } from "~/utils/db";
+import { TodoList } from "~/components/TodoList";
+
+export async function loader() {
+  return fakeGetTodos();
+}
+
+export async function action({ request }) {
+  let body = await request.formData();
+  let todo = await fakeCreateTodo({
+    title: body.get("title")
+  });
+  return redirect(`/todos/${todo.id}`);
+}
+
+export default function Todos() {
+  let data = useLoaderData();
+  return (
+    <div>
+      <TodoList todos={data} />
+      <Form method="post">
+        <input type="text" name="title" />
+        <button type="submit">Create Todo</button>
+      </Form>
+    </div>
+  );
+}
+```
 
 
 
 ### headers
+各ルートは、独自のHTTPヘッダーを定義できます。一般的なヘッダーの1つは、
+Cache-Controlページをキャッシュできる場所と期間をブラウザーとCDNのキャッシュに示すヘッダーです。
+
+```tsx
+export function headers({ loaderHeaders, parentHeaders }) {
+  return {
+    "X-Stretchy-Pants": "its for fun",
+    "Cache-Control": "max-age=300, s-maxage=3600"
+  };
+}
+```
 
 ### meta 
+HTMLドキュメントのメタタグを設定します。
+レイアウトルート以外のすべてのルートにタイトルと説明を設定することを強くお勧めします（インデックスルートがメタを設定します）。
+
+```tsx
+import type { MetaFunction } from "remix";
+
+export let meta: MetaFunction = () => {
+  return {
+    title: "Something cool",
+    description:
+      "This becomes the nice preview on search results."
+  };
+};
+```
 
 ### links
+
+リンク関数(<Link>)は、ユーザーがルートにアクセスしたときにページに追加する要素を定義します。
+
+```tsx
+import type { LinksFunction } from "remix";
+
+export let links: LinksFunction = () => {
+  return [
+    {
+      rel: "icon",
+      href: "/favicon.png",
+      type: "image/png"
+    },
+    {
+      rel: "stylesheet",
+      href: "https://example.com/some/styles.css"
+    },
+    { page: "/users/123" },
+    {
+      rel: "preload",
+      href: "/images/banner.jpg",
+      as: "image"
+    }
+  ];
+};
+```
+
+```tsx
+export const links = () => {
+  // <link rel="stylesheet" href="..." />
+  return [{ rel: "stylesheet", href: adminStyles }];
+};
+```
