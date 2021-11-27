@@ -27,10 +27,13 @@ export let links: LinksFunction = () => {
 
 // https://remix.run/api/conventions#default-export
 // https://remix.run/api/conventions#route-filenames
+// 一番最初にみるべきところ
 export default function App() {
   return (
     <Document>
       <Layout>
+        {/* 中身 */}
+        {/* routes内のコンポーネントとかboundary系がここにくる */}
         <Outlet />
       </Layout>
     </Document>
@@ -120,6 +123,7 @@ function Document({
   );
 }
 
+// childrenを作ってレイアウトを作っている(ヘッダとフッタ)
 function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="remix-app">
@@ -132,6 +136,9 @@ function Layout({ children }: { children: React.ReactNode }) {
             <ul>
               <li>
                 <Link to="/">Home</Link>
+              </li>
+              <li>
+                <Link to="/posts">Posts</Link>
               </li>
               <li>
                 <a href="https://remix.run/docs">Remix Docs</a>
