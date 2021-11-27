@@ -81,4 +81,5 @@ R E M I X
 
 ### directory
 Next.jsにおける_app.tsx → root.tsx
+
 Next.jsにおけるpages → routesディレクトリ
